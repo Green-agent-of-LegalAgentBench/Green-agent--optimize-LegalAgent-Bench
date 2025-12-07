@@ -1,0 +1,9 @@
+langchain
+chromadb
+voyageai
+google-generativeai
+pandas
+tqdm
+python-dotenv
+requests
+numpy
