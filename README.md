@@ -1,144 +1,58 @@
-# LegalAgentBench-A2A Green Agent  
-A benchmark-native legal agent for the AgentBeats competition
+# 🚀 LegalAgentBench
+[![GitHub Sponsors](https://img.shields.io/badge/sponsors-GitHub-blue?logo=github&logoColor=white)](https://github.com/sponsors) ![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-yellow) ![Contributors](https://img.shields.io/badge/contributors-10-yellow) ![Awesome List](https://img.shields.io/badge/awesome-awesome-brightgreen) ![](https://img.shields.io/badge/PRs-Welcome-red)
 
----
+# 🌟 About This Repo
 
-## 1. Project Overview
+This repo is for our paper: LegalAgentBench: Evaluating LLM Agents in Legal Domain.
 
-This repository implements the **Green Agent (benchmark agent)** for the AgentBeats competition.  
-The goal of this project is to wrap **LegalAgentBench** into an **A2A-compatible benchmark agent** that can be directly used by any Purple Agent through the official **Agent-to-Agent (A2A) protocol**.
+With the increasing intelligence and autonomy of LLM agents, their potential applications in the legal domain are becoming increasingly apparent. However, existing general-domain benchmarks cannot fully capture the complexity and subtle nuances of real-world judicial cognition and decision-making. 
 
-More specifically, this project converts LegalAgentBench’s tasks, tools, and evaluation logic into a fully standardized benchmark that is:
+Therefore, we propose **LegalAgentBench**, a comprehensive benchmark specifically designed to evaluate LLM Agents in the Chinese legal domain. 
 
-- **A2A-native**
-- **Deterministic & reproducible**
-- **Structured & extensible**
-- **Designed for Chinese-law legal reasoning**
+LegalAgentBench includes 17 corpora from real-world legal scenarios and provides 37 tools for interacting with external knowledge. We designed a scalable task construction framework and carefully annotated 300 tasks. These tasks span various types, including multi-hop reasoning and writing, and range across different difficulty levels, effectively reflecting the complexity of real-world legal scenarios. 
 
-### Key Features of the Green Agent
-- Provides **tasks** in A2A JSON format  
-- Provides **tools** (legal search, case retrieval, filtering, etc.)  
-- Provides **evaluation metrics** (success, process, citation, safety)  
-- Records **action logs** for reproducibility  
-- Communicates with Purple Agents strictly through the **A2A protocol**
 
----
 
-## 2. Motivation & Goals
+## 🧩 Characteristic
 
-This project responds to limitations identified in **LegalAgentBench** and aligns with the AgentBeats competition goals for creating stronger, more usable benchmarks.
+- **Focus on Authentic Legal Scenarios:** LegalAgentBench is the first dataset to evaluate LLM agents in legal scenarios. It requires LLMs to demonstrate a solid understanding of legal principles, enabling them to appropriately select and utilize tools to solve complex legal problems. This represents a significant step forward in advancing the application of LLM agents in legal scenarios.
 
-### Problems with existing legal benchmarks
-1. **Interoperability**  
-   - Current benchmarks cannot be directly used by real LLM agents.
+- **Diverse Task Types and Difficulty Levels:** LegalAgentBench adopts a scalable task construction framework aimed at comprehensively covering various task types and difficulty levels. Specifically, we construct a planning tree based on the dependencies between the corpus and tools, and select tasks through hierarchical sampling and a maximum coverage strategy. Finally, we constructed 300 distinct tasks, including multi-hop reasoning and writing tasks, to comprehensively evaluate the LLM’s capabilities。
 
-2. **Reproducibility**  
-   - Evaluation pipelines are not deterministic; scores vary across runs.
+- **Fine-Grained Evaluation Metrics:** Rather than relying solely on final success rates as evaluation criteria, LegalAgentBench introduces the process rate through the annotation of intermediate steps, enabling fine-grained evaluation. This approach provides deeper insights into an agent’s capabilities and identifies areas for improvement beyond the final result.
 
-3. **Fragmentation**  
-   - Evaluation criteria are inconsistent and scattered.
+## 🌳 Repo Structure
+```
+LegalAgentBench/
+│
+├── data/               
+|   |── dataset.json            # Question and Answer Set
+├── src/
+|   |── evaluation/             # evlaution example
+|   |── output/                 # output example
+|   |── token/                  # token consumption records
+|   ├── generated_tools.py      # tools can be used for LLM Agents
+|   ├── globals.py              # global variables
+|   ├── plan_and_excute.py      # code for plan_and_excute method
+|   ├── plan_and_solve.py       # code for plan_and_solve method
+|   ├── react.py                # code for react method              
+|   ├── schema.py               # definition for corpus
+|   ├── prompt.py 
+|   └── utils.py                
+├── agents.py                   # definition for agents
+├── fewshots.py                 # fewshots for agents
+├── prompts.py                  # prompts for agents
+```
 
-4. **Discovery**  
-   - Benchmarks are difficult to understand, extend, and reuse.
+## ⚙️ Quick Start
+```python
+git clone https://github.com/CSHaitao/LegalAgentBench.git
+cd LegalAgentBench
+pip install -r requirements.txt
 
----
+cd src
+python react.py --model LLM_name --date time
+```
 
-## 3. Our Goals
-
-### **1. Build an A2A-Compatible Legal Benchmark (Interoperability)**  
-- Convert all **300 LegalAgentBench tasks** into standardized A2A task JSON  
-- Ensure retrieval, analysis, reasoning, and tool-use tasks can be executed by any LLM agent using the A2A interface
-
-### **2. Enable Highly Reproducible Evaluation (Reproducibility)**  
-- Implement **deterministic** task generation & scoring logic  
-- Fix tool behavior, corpus usage, retrieval logic, and evaluation rules  
-- Provide benchmark-side logging & action replay  
-- Ensure identical inputs → consistent outputs (or explainable differences)
-
-### **3. Build a Structured Capability Evaluation System (Fragmentation)**  
-Unify evaluation across tasks with dimensions such as:
-
-- Legal text comprehension  
-- Legal tool-use ability  
-- Legal argumentation & writing quality  
-- Reasoning explainability (full reasoning trace)  
-- Compliance & safety (no hallucinated laws, no illegal advice)
-
-### **4. Improve Discoverability & Extensibility (Discovery)**  
-- Create a benchmark that is **easy to use, easy to extend, and easy to integrate**  
-- Standardize:
-  - Task schema  
-  - Tool schema  
-  - Evaluation outputs  
-- Provide clear documentation and example workflows
-
----
-
-## 4. System Components
-
-### **A. Task Provider**
-- Converts LegalAgentBench dataset into A2A task definitions  
-- Enforces the unified task schema  
-- Includes allowed tools, evaluation references, and metadata
-
-### **B. Tool Layer**
-- Wraps the original 37 LegalAgentBench tools into A2A tool schemas  
-- Supports legal search, case retrieval, law citation lookup, filtering, sorting, etc.  
-- Future extension: vector-store RAG tools to improve legal comprehension
-
-### **C. Evaluation Layer**
-Produces `result.json` with metrics:
-
-- `success_score`  
-- `process_score`  
-- `citation_score`  
-- `safety_score`  
-
-Also performs:
-
-- hallucination detection  
-- reasoning-step alignment  
-- legal citation validation  
-- sensitive-content safety checks
-
-### **D. Logging & Reproducibility**
-- Logs every A2A message  
-- Logs every tool call & observation  
-- Supports full **action replay** for debugging / reproducibility
-
-### **E. A2A Protocol Engine**
-- Handles all communication between Green Agent and Purple Agent  
-- Validates A2A message structure  
-- Ensures tool calls and final answers comply with A2A specification
-
----
-
-## 5. Upstream Resources
-
-This project is built upon the following open-source frameworks:
-
-### LegalAgentBench (ACL 2025)
-- Paper: https://aclanthology.org/2025.acl-long.116/  
-- GitHub: https://github.com/CSHaitao/LegalAgentBench  
-
-Key files:
-- 37 tools: `src/generated_tools.py`  
-- Reasoning agents: `react.py`, `plan_and_solve.py`, `plan_and_execute.py`  
-- Tasks: `data/dataset.json`  
-
-### Related Legal Benchmarks
-- LawBench — https://arxiv.org/abs/2309.16289  
-- CitaLaw — https://arxiv.org/abs/2412.14556  
-- DISC-LawLLM — https://github.com/FudanDISC/DISC-LawLLM  
-- Chinese-LawBench — https://arxiv.org/abs/2406.04500  
-
-### AgentBeats & A2A Resources
-- A2A Protocol Spec — https://github.com/a2aproject/A2A  
-- AgentBeats SDK — https://github.com/agentbeats/agentbeats  
-- A2A Tutorial — https://github.com/agentbeats/tutorial  
-- A2A Example Implementation — https://github.com/sap156/Agent-to-Agent-A2A-Protocol-Implementation  
-
----
-
-## 6. Repository Structure (Planned)
+❗️ **Important**: Replace the string `your_api_key` in `utils.py` with the actual key.
 
