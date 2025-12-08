@@ -1,2 +1,27 @@
-echo "venv/" >> .gitignore
+cat <<EOF > .gitignore
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
 venv/
+.env/
+
+# Large datasets
+*.json
+*.jsonl
+*.zip
+*.tar
+*.gz
+
+# Mac system
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+EOF
+
