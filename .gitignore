@@ -1,32 +1,32 @@
-cat <<EOF > .gitignore
+# ======================
 # Python
+# ======================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
 
+# ======================
 # Virtual environment
+# ======================
 venv/
 .env/
 
-# Large datasets
-*.json
-*.jsonl
-*.zip
-*.tar
-*.gz
-
+# ======================
 # Mac system
+# ======================
 .DS_Store
 
+# ======================
 # IDE
+# ======================
 .vscode/
 .idea/
-EOF
 
+# ======================
+# Temporary / logs
+# ======================
+*.log
+*.tmp
 
-database_resource-raw/
-
-# allow dataset.json through LFS
-!data/dataset.json
