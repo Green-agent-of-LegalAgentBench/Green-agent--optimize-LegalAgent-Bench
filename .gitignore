@@ -27,3 +27,6 @@ EOF
 
 
 database_resource-raw/
+
+# allow dataset.json through LFS
+!data/dataset.json
