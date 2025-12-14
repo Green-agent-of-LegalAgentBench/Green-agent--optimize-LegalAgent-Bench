@@ -3,9 +3,8 @@ import json
 import re
 import os
 import google.generativeai as genai
-import globals
+from .globals import *
 from dotenv import load_dotenv
-
 # 加载环境变量
 load_dotenv()
 
@@ -150,10 +149,10 @@ def prase_json_from_response(rsp: str):
         raise ("Json Decode Error: {error}".format(error=e))
     
 
-from generated_tools import *
-from prompt import *
+from .generated_tools import *
+from .prompt import *
 from schema import *
-from utils import *
+#from utils import *
 
 def filter_table_and_tool(query, model_name):
     for attempt in range(3):

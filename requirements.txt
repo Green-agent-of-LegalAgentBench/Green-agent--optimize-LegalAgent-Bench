@@ -1,9 +1,15 @@
 langchain
+langchain-core
+langchain-community
 chromadb
 voyageai
 google-generativeai
+zhipuai
+termcolor
 pandas
 tqdm
 python-dotenv
 requests
 numpy
+httpx
+sniffio
