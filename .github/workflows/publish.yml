@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: law/greenagent
+  IMAGE_NAME: green-agent-of-legalagentbench/agent
 
 jobs:
   build-and-push:
