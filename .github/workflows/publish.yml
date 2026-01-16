@@ -1,9 +1,9 @@
-name: Build and Publish Agent Image
+name: Build and Publish Agent Images
 
 on:
   push:
-    branches: [ "main" ] 
-    tags: [ "v*" ]
+    branches: ["main"]
+    tags: ["v*"]
 
 env:
   REGISTRY: ghcr.io
@@ -27,8 +27,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
+      # ---- Build & push server image (:latest) ----
+      - name: Extract metadata (tags, labels) for server image
+        id: meta_server
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
@@ -36,12 +37,31 @@ jobs:
             type=raw,value=latest
             type=ref,event=tag
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push server Docker image (:latest)
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: Dockerfile.server
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_server.outputs.tags }}
+          labels: ${{ steps.meta_server.outputs.labels }}
+          platforms: linux/amd64
+
+      # ---- Build & push audit image (:audit) ---
+      - name: Extract metadata (tags, labels) for audit image
+        id: meta_audit
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=audit
+
+      - name: Build and push audit Docker image (:audit)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.audit
+          push: true
+          tags: ${{ steps.meta_audit.outputs.tags }}
+          labels: ${{ steps.meta_audit.outputs.labels }}
           platforms: linux/amd64
