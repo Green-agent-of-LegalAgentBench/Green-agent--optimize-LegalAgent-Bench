@@ -1,16 +1,42 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-  && rm -rf /var/lib/apt/lists/*
+# 安装 curl（健康检查需要）
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
 COPY . .
 
-# A2A server entrypoint (AgentBeats will pass --host/--port)
-ENTRYPOINT ["python", "-m", "uvicorn", "app:app"]
-CMD ["--host", "0.0.0.0", "--port", "9009"]
+# 创建启动脚本来处理命令行参数
+RUN echo '#!/bin/bash\n\
+# 默认值\n\
+HOST="0.0.0.0"\n\
+PORT="9009"\n\
+\n\
+# 解析参数\n\
+while [[ $# -gt 0 ]]; do\n\
+  case $1 in\n\
+    --host)\n\
+      HOST="$2"\n\
+      shift 2\n\
+      ;;\n\
+    --port)\n\
+      PORT="$2"\n\
+      shift 2\n\
+      ;;\n\
+    --card-url)\n\
+      # 忽略 card-url 参数\n\
+      shift 2\n\
+      ;;\n\
+    *)\n\
+      shift\n\
+      ;;\n\
+  esac\n\
+done\n\
+\n\
+# 启动 uvicorn\n\
+exec python -m uvicorn app:app --host "$HOST" --port "$PORT"\n\
+' > /app/start.sh && chmod +x /app/start.sh
 
+ENTRYPOINT ["/app/start.sh"]
