@@ -7,4 +7,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENTRYPOINT ["python", "-u", "scripts/run_audit_resume.py"]
+# ✅ AgentBeats / A2A 标准入口
+ENTRYPOINT ["python", "-m", "src.server"]
