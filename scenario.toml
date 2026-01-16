@@ -1,0 +1,13 @@
+# 1. 设置考官 (Green Agent)
+[green_agent]
+agentbeats_id = "zhuxirui677/legal-agent-green-agent-zxl"
+
+# 2. 设置考生 (Purple Agent) -  Law 代理
+[purple_agent]
+agentbeats_id = "zhuxirui677/lawlawlaw"
+
+# 3. 环境变量与配置 (可选)
+# 你可以在这里设置考试时长、轮次等
+# [environment]
+# duration = 600       # 考试限时（秒）
+# max_turns = 10       # 最大对话轮数 (如果有这个限制的话)
