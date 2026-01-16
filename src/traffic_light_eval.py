@@ -1,6 +1,7 @@
 # 实现 "Traffic Light" & "HalluGraph" 审计器
 import json
-from src.utils import LLM # 复用 agents.py 里的 LLM 调用函数
+from .utils import LLM
+ # 复用 agents.py 里的 LLM 调用函数
 
 class TrafficLightAuditor:
     def __init__(self, model_name="gemini-pro"):
