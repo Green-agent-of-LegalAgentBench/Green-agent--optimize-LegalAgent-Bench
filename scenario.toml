@@ -12,4 +12,4 @@ agentbeats_id = "019bc40a-9f04-73d3-834f-30763fce76aa"
 # 在这里设置考试时长、轮次等
 # [environment]
 # duration = 600       # 考试限时（秒）
-# max_turns = 10       # 最大对话轮数 (如果有这个限制的话)
+# max_turns = 10       # 最大对话轮数 

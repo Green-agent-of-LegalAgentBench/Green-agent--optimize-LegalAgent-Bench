@@ -1,0 +1,33 @@
+name: Run Assessment
+
+# 监听配置文件变化
+on:
+  push:
+    paths:
+      - 'scenario.toml'
+  workflow_dispatch:
+
+jobs:
+  run-assessment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # 这一行必须有，否则机器人没权限提 PR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run AgentBeats Assessment
+        uses: RDI-Foundation/agentbeats-action@v1
+        with:
+          scenario-file: 'scenario.toml'
+          api-key: ${{ secrets.AGENTBEATS_API_KEY }}  # 这个必须留着
+          
+          # 【修改点】: 删掉 google/openai，换成 environment 传递
+          # 注意：agentbeats-action 可能默认不透传自定义参数
+          # 稳妥的做法是利用 action 支持的 env 传递方式，或者直接映射
+        env:
+          # 把 GitHub 里的 Secret 映射为容器里的环境变量
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          # 如果你的代码里用的是其他名字，这里要对应上
