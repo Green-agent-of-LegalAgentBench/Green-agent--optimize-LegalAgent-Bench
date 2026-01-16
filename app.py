@@ -2,24 +2,26 @@ from __future__ import annotations
 
 import os
 from typing import Any, Dict
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 
 def _default_url() -> str:
     # In docker-compose, other containers reach us via service name.
-    # Your error shows it is requesting: http://green-agent:9009/...
+    # AgentBeats requests: http://green-agent:9009/.well-known/agent-card.json
     return os.getenv("AGENT_URL") or os.getenv("AGENT_HOST") or "http://green-agent:9009"
 
 
 def _fallback_agent_card() -> Dict[str, Any]:
     """
-    Minimal A2A AgentCard compatible with common validators.
+    Minimal A2A AgentCard compatible with the validator used by agentbeats-client.
 
-    Key requirements seen from the A2A ecosystem:
-      - capabilities: object/dict (not list) with booleans
-      - defaultInputModes / defaultOutputModes: required arrays
-      - skills: array of objects; commonly expects id/name/description + modes
+    Requirements observed from errors:
+      - capabilities: MUST be a dict/object (not list)
+      - defaultInputModes: required list
+      - defaultOutputModes: required list
+      - skills: required list; each skill requires tags (and commonly id/name/modes)
     """
     return {
         "name": "green-agent",
@@ -41,6 +43,7 @@ def _fallback_agent_card() -> Dict[str, Any]:
                 "examples": ["Evaluate a purple agent on the provided A2A scenario."],
                 "inputModes": ["text"],
                 "outputModes": ["text"],
+                "tags": ["evaluation", "benchmark", "legal"],
             }
         ],
     }
@@ -54,16 +57,15 @@ def _ensure_capabilities_dict(card: Dict[str, Any]) -> None:
         card["capabilities"] = _fallback_agent_card()["capabilities"]
         return
 
-    # If already dict → ok
+    # If already dict → ensure keys exist
     if isinstance(caps, dict):
-        # Ensure the expected keys exist (safe defaults)
         caps.setdefault("streaming", False)
         caps.setdefault("pushNotifications", False)
         caps.setdefault("stateTransitionHistory", False)
         card["capabilities"] = caps
         return
 
-    # If list or other type → coerce to dict defaults
+    # If list/other type → coerce to defaults
     card["capabilities"] = _fallback_agent_card()["capabilities"]
 
 
@@ -85,13 +87,19 @@ def _ensure_skills(card: Dict[str, Any]) -> None:
     for i, s in enumerate(skills):
         if not isinstance(s, dict):
             continue
+
         s2 = dict(s)
         s2.setdefault("id", f"skill-{i}")
         s2.setdefault("name", s2["id"])
         s2.setdefault("description", "")
+
         # Some validators expect modes on each skill
         s2.setdefault("inputModes", card.get("defaultInputModes", ["text"]))
         s2.setdefault("outputModes", card.get("defaultOutputModes", ["text"]))
+
+        # Required by your validator error
+        s2.setdefault("tags", ["evaluation"])
+
         fixed.append(s2)
 
     if not fixed:
@@ -135,6 +143,7 @@ def _load_agent_card() -> Dict[str, Any]:
                 return _normalize_card(card)
 
     except Exception:
+        # Keep server alive even if agents import fails
         pass
 
     return _fallback_agent_card()
