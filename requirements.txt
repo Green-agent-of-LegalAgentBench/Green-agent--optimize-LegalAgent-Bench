@@ -13,3 +13,5 @@ requests
 numpy
 httpx
 sniffio
+fastapi
+uvicorn
