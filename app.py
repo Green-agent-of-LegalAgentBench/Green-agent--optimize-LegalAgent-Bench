@@ -9,17 +9,14 @@ from fastapi.responses import JSONResponse
 
 
 # ---------- Agent Card (A2A) ----------
-# 注意：capabilities 必须是 dict；skills[*].tags 必须存在
 AGENT_CARD: Dict[str, Any] = {
     "name": "green-agent",
     "description": "LegalAgentBench Green Agent (A2A host)",
     "version": "0.1.0",
-    # 重要：这里给一个可访问的 base url（AgentBeats 容器内访问不靠这个字段，但 schema 要求有）
     "url": os.getenv("PUBLIC_BASE_URL", "http://localhost:9009"),
     "defaultInputModes": ["text"],
     "defaultOutputModes": ["text"],
     "capabilities": {
-        # 先不做 streaming，避免客户端走 stream 分支
         "streaming": False,
         "pushNotifications": False,
     },
@@ -36,9 +33,9 @@ AGENT_CARD: Dict[str, Any] = {
     ],
 }
 
-
-# ---------- FastAPI ----------
 app = FastAPI(title="Green Agent", version="0.1.0")
+
+_TASK_STORE: Dict[str, Dict[str, Any]] = {}
 
 
 @app.get("/.well-known/agent-card.json")
@@ -53,14 +50,7 @@ def healthz():
 
 @app.get("/")
 def root():
-    # 防止有人 GET / 看到 404
     return {"ok": True, "service": "green-agent"}
-
-
-# ---------- Minimal A2A JSON-RPC ----------
-# AgentBeats / a2a client 会 POST 到 http://host:port/ (根路径)
-# 常见 method: message/send, tasks/get
-_TASK_STORE: Dict[str, Dict[str, Any]] = {}
 
 
 def _jsonrpc_error(req_id: Any, code: int, message: str, data: Optional[Any] = None):
@@ -71,9 +61,6 @@ def _jsonrpc_error(req_id: Any, code: int, message: str, data: Optional[Any] = N
 
 
 def _extract_text(params: Dict[str, Any]) -> str:
-    """
-    A2A message parts: [{"kind":"text","text":"..."}]
-    """
     msg = (params or {}).get("message") or {}
     parts = msg.get("parts") or []
     texts = []
@@ -83,19 +70,25 @@ def _extract_text(params: Dict[str, Any]) -> str:
     return "\n".join(texts).strip()
 
 
-@app.post("/")
-async def a2a_jsonrpc(request: Request):
-    payload = await request.json()
+async def _handle_jsonrpc(request: Request):
+    # 有些客户端可能发非 JSON 或空 body，别让服务直接 500
+    try:
+        payload = await request.json()
+    except Exception:
+        return _jsonrpc_error(None, -32700, "Parse error: invalid JSON")
+
     req_id = payload.get("id")
     method = payload.get("method")
     params = payload.get("params") or {}
+
+    # 兼容一些“探活/能力探测”的 method：直接给个 OK
+    if method in ("ping", "health", "capabilities/get"):
+        return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": {"ok": True}})
 
     # ---- message/send ----
     if method == "message/send":
         user_text = _extract_text(params)
 
-        # 先用“回显”方式跑通 pipeline：你后续把这里替换成真正 evaluate 流程即可
-        # 比如：解析 scenario -> 调用 purple agent -> 打分 -> 生成 results.json
         reply_text = (
             "✅ Green Agent received your request.\n\n"
             "Echo:\n"
@@ -131,5 +124,24 @@ async def a2a_jsonrpc(request: Request):
             return _jsonrpc_error(req_id, -32004, "Task not found")
         return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": _TASK_STORE[task_id]})
 
-    # ---- unknown method ----
     return _jsonrpc_error(req_id, -32601, f"Method not found: {method}")
+
+
+@app.post("/")
+async def jsonrpc_root(request: Request):
+    return await _handle_jsonrpc(request)
+
+
+@app.post("/jsonrpc")
+async def jsonrpc_alt(request: Request):
+    return await _handle_jsonrpc(request)
+
+
+@app.post("/a2a")
+async def jsonrpc_a2a(request: Request):
+    return await _handle_jsonrpc(request)
+
+
+@app.post("/rpc")
+async def jsonrpc_rpc(request: Request):
+    return await _handle_jsonrpc(request)
