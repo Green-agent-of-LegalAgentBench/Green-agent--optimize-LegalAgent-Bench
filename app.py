@@ -39,8 +39,29 @@ _TASK_STORE: Dict[str, Dict[str, Any]] = {}
 
 
 @app.get("/.well-known/agent-card.json")
-def get_agent_card():
-    return JSONResponse(AGENT_CARD)
+async def get_agent_card(request: Request):
+    """
+    Return agent card with dynamically computed URL.
+    Uses request.base_url so other containers can reach us (e.g. http://green-agent:9009).
+    """
+    endpoint = str(request.base_url).rstrip("/")
+    
+    # Log the computed endpoint for debugging
+    print(f"[agent-card] advertising endpoint = {endpoint}", flush=True)
+    
+    # Build agent card with dynamic URL
+    card = {
+        "name": AGENT_CARD["name"],
+        "description": AGENT_CARD["description"],
+        "version": AGENT_CARD["version"],
+        "url": endpoint,  # Dynamic URL instead of hardcoded localhost
+        "defaultInputModes": AGENT_CARD["defaultInputModes"],
+        "defaultOutputModes": AGENT_CARD["defaultOutputModes"],
+        "capabilities": AGENT_CARD["capabilities"],
+        "skills": AGENT_CARD["skills"],
+    }
+    
+    return JSONResponse(card)
 
 
 @app.get("/healthz")
