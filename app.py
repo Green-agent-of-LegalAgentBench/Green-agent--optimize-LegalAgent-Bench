@@ -42,19 +42,22 @@ _TASK_STORE: Dict[str, Dict[str, Any]] = {}
 async def get_agent_card(request: Request):
     """
     Return agent card with dynamically computed URL.
-    Uses request.base_url so other containers can reach us (e.g. http://green-agent:9009).
+    Uses Host header to get the correct hostname (e.g. green-agent:9009).
     """
-    endpoint = str(request.base_url).rstrip("/")
+    # Get the Host header from the request
+    host = request.headers.get("host", "localhost:9009")
+    scheme = request.url.scheme or "http"
+    endpoint = f"{scheme}://{host}"
     
     # Log the computed endpoint for debugging
-    print(f"[agent-card] advertising endpoint = {endpoint}", flush=True)
+    print(f"[agent-card] advertising endpoint = {endpoint} (Host: {host})", flush=True)
     
     # Build agent card with dynamic URL
     card = {
         "name": AGENT_CARD["name"],
         "description": AGENT_CARD["description"],
         "version": AGENT_CARD["version"],
-        "url": endpoint,  # Dynamic URL instead of hardcoded localhost
+        "url": endpoint,  # Dynamic URL from Host header
         "defaultInputModes": AGENT_CARD["defaultInputModes"],
         "defaultOutputModes": AGENT_CARD["defaultOutputModes"],
         "capabilities": AGENT_CARD["capabilities"],
