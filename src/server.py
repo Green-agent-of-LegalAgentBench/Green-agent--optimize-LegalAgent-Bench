@@ -87,18 +87,34 @@ def _make_completed_task(req_id: Any, context_id: Optional[str], result_obj: Dic
 async def _handle_a2a_message(params: Dict[str, Any]) -> Dict[str, Any]:
     """
     Accept A2A message payload. We try to find assessment payload in:
-      params.message.parts[].data  OR params.payload OR params itself.
+      params.message.parts[].data  OR params.message.parts[].text (JSON string) OR params.payload OR params itself.
     """
     msg = params.get("message") or {}
     context_id = msg.get("contextId")
 
     payload: Optional[Dict[str, Any]] = None
     parts = msg.get("parts") or []
+    
+    # Try to extract payload from parts
     for p in parts:
-        if isinstance(p, dict) and p.get("kind") == "data" and isinstance(p.get("data"), dict):
+        if not isinstance(p, dict):
+            continue
+        
+        # Case 1: kind=data with direct dict
+        if p.get("kind") == "data" and isinstance(p.get("data"), dict):
             payload = p["data"]
             break
+        
+        # Case 2: kind=text with JSON string
+        if p.get("kind") == "text" and isinstance(p.get("text"), str):
+            try:
+                payload = json.loads(p["text"])
+                if isinstance(payload, dict):
+                    break
+            except json.JSONDecodeError:
+                continue
 
+    # Fallback options
     if payload is None:
         payload = params.get("payload")
     if payload is None:
