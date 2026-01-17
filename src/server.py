@@ -29,12 +29,15 @@ async def agent_card(request: Request) -> Dict[str, Any]:
     """
     IMPORTANT:
     - Do NOT trust runner-provided --card-url (it might be localhost).
-    - Use request.base_url so other containers can reach us (e.g. http://green-agent:9009/).
+    - Use Host header to get the correct hostname (e.g. green-agent:9009).
     """
-    endpoint = str(request.base_url).rstrip("/")  # e.g. http://green-agent:9009
+    # Get the Host header from the request
+    host = request.headers.get("host", "localhost:9009")
+    scheme = request.url.scheme or "http"
+    endpoint = f"{scheme}://{host}"
 
     # 额外把我们计算出来的 endpoint 打到日志里（你看 runner 日志就能知道 client 应该连哪）
-    print(f"[agent-card] advertising endpoint = {endpoint}", flush=True)
+    print(f"[agent-card] advertising endpoint = {endpoint} (Host: {host})", flush=True)
 
     return {
         "name": APP_NAME,

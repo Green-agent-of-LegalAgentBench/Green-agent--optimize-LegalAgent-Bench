@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do\n\
 done\n\
 \n\
 # 启动 uvicorn\n\
-exec python -m uvicorn app:app --host "$HOST" --port "$PORT"\n\
+exec python -m uvicorn src.server:app --host "$HOST" --port "$PORT"\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 ENTRYPOINT ["/app/start.sh"]
