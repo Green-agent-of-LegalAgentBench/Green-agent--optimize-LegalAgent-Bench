@@ -1,4 +1,7 @@
-from langchain_core.prompts import PromptTemplate
+try:
+    from langchain_core.prompts import PromptTemplate
+except ImportError:
+    from langchain.prompts import PromptTemplate
 
 REACT_INSTRUCTION = """解决一个问答任务, 步骤包括交替进行的"思考", "行动"和"观察".
 - "思考"用于基于现在的情况推理下一步, 注意你只需要思考下一步.

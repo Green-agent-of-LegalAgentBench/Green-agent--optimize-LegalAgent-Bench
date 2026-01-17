@@ -27,9 +27,8 @@ def health() -> Dict[str, Any]:
 @app.get("/.well-known/agent-card.json")
 async def agent_card(request: Request) -> Dict[str, Any]:
     """
-    IMPORTANT:
-    - Do NOT trust runner-provided --card-url (it might be localhost).
-    - Use Host header to get the correct hostname (e.g. green-agent:9009).
+    Return complete A2A-compliant agent card with dynamically computed URL.
+    Uses Host header to get the correct hostname (e.g. green-agent:9009).
     """
     # Get the Host header from the request
     host = request.headers.get("host", "localhost:9009")
@@ -41,8 +40,26 @@ async def agent_card(request: Request) -> Dict[str, Any]:
 
     return {
         "name": APP_NAME,
-        "description": "Green agent (Traffic Light) - A2A compatible",
-        "a2a": {"version": A2A_VERSION, "endpoint": endpoint},
+        "description": "Green agent (Traffic Light) - A2A compatible benchmark host",
+        "version": A2A_VERSION,
+        "url": endpoint,
+        "defaultInputModes": ["text"],
+        "defaultOutputModes": ["text"],
+        "capabilities": {
+            "streaming": False,
+            "pushNotifications": False,
+        },
+        "skills": [
+            {
+                "id": "evaluate",
+                "name": "Evaluate",
+                "description": "Run benchmark evaluation and return auditable results.",
+                "tags": ["benchmark", "evaluation", "legal"],
+                "examples": ["Evaluate a purple agent on the provided A2A scenario."],
+                "inputModes": ["text"],
+                "outputModes": ["text"],
+            }
+        ],
     }
 
 
