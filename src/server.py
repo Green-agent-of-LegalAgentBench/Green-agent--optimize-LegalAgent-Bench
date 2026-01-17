@@ -107,6 +107,23 @@ async def _handle_a2a_message(params: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         payload = {}
 
+    # Debug: log received payload
+    print(f"[executor] Received payload: {json.dumps(payload, indent=2)}", flush=True)
+
+    # Transform participants from array to dict if needed
+    participants = payload.get("participants")
+    if isinstance(participants, list):
+        # Convert from [{"role": "name", "endpoint": "url"}] to {"name": "url"}
+        participants_dict = {}
+        for p in participants:
+            if isinstance(p, dict):
+                role = p.get("role") or p.get("name")
+                endpoint = p.get("endpoint") or p.get("url")
+                if role and endpoint:
+                    participants_dict[role] = endpoint
+        payload["participants"] = participants_dict
+        print(f"[executor] Transformed participants: {participants_dict}", flush=True)
+
     result_obj = await run_assessment(payload)
     result_obj.setdefault("context_id", context_id)
     return result_obj
