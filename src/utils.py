@@ -50,7 +50,7 @@ def LLM(query, model_name):
     if model_name.find("gpt") != -1 or model_name.find("gemini") != -1:
         # 使用 Gemini API
         # 如果模型名包含 gpt，也使用 Gemini（因为用户想用 Gemini 替换 OpenAI）
-        model = genai.GenerativeModel(model_name if model_name.find("gemini") != -1 else "gemini-pro")
+        model = genai.GenerativeModel(model_name if model_name.find("gemini") != -1 else "gemini-1.5-flash")
         
         # 构建提示词，包含 system message 和 user query
         prompt = f"You are a helpful assistant.\n\n{query}"
@@ -66,7 +66,7 @@ def LLM(query, model_name):
 
     elif model_name.find('claude') != -1:
         # 使用 Gemini 替代 Claude
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"You are a helpful assistant.\n\n{query}"
         response = model.generate_content(
             prompt,
@@ -79,7 +79,7 @@ def LLM(query, model_name):
     
     elif model_name.find('qwen') != -1:
         # 使用 Gemini 替代 Qwen
-        model = genai.GenerativeModel("gemini-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"You are a helpful assistant.\n\n{query}"
         response = model.generate_content(
             prompt,
