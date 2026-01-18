@@ -45,35 +45,61 @@ def LLM(query, model_name):
     return response.choices[0].message.content.strip()
     
 
-def prase_json_from_response(rsp: str):
-    pattern = r"```json(.*?)```"
-    print("输入的: ", rsp)
-    rsp_json = None
-    try:
-        match = re.search(pattern, rsp, re.DOTALL)
-        if match is not None:
-            try:
-                rsp_json = json.loads(match.group(1).strip().replace('(', '（').replace(')', '）'))
-            except:
-                rsp_json = json.loads(match.group(1).strip().replace('\'', '\"').replace('(', '（').replace(')', '）'))
+import json
+import re
+
+def parse_json_from_response(rsp: str):
+    """
+    强壮的 JSON 解析函数：能处理 Markdown、纯文本以及包含废话的回答
+    """
+    print(f"DEBUG: LLM Raw Response:\n{rsp}\n----------------") # 关键调试信息
+    
+    json_str = None
+    
+    # 策略 1: 尝试提取 Markdown 代码块 (无论是否标记为 json)
+    # 匹配 ```json ... ``` 或 ``` ... ```
+    pattern = r"```(?:json|JSON)?(.*?)```"
+    match = re.search(pattern, rsp, re.DOTALL)
+    
+    if match:
+        json_str = match.group(1).strip()
+    else:
+        # 策略 2: 没找到代码块？尝试寻找最外层的 {}
+        # 这能处理："Here is the result: { ... } Hope it helps."
+        start = rsp.find('{')
+        end = rsp.rfind('}')
+        if start != -1 and end != -1:
+            json_str = rsp[start:end+1]
         else:
-            try:
-                rsp = rsp.replace('(', '（').replace(')', '）')
-                rsp_json = json.loads(rsp)
-            except:
-                rsp = rsp.replace('\'', '\"').replace('(', '（').replace(')', '）')
-                rsp_json = json.loads(rsp)
-        return rsp_json
-    except json.JSONDecodeError as e:  # 因为太长解析不了
+            # 策略 3: 死马当活马医，尝试解析整个字符串
+            json_str = rsp.strip()
+
+    # 统一的数据清洗（处理中文括号等常见问题）
+    # 注意：直接把 ' 换成 " 有风险（如果内容里有 don't），但在报错重试里做是可以的
+    
+    try:
+        # 尝试 1: 直接解析提取出的字符串
+        return json.loads(json_str)
+    except json.JSONDecodeError:
         try:
-            match = re.search(r"\{(.*?)\}", rsp, re.DOTALL)
-            if match:
-                content = "[{" + match.group(1) + "}]"
-                return json.loads(content)
-        except:
-            pass
-        print(rsp)
-        raise ("Json Decode Error: {error}".format(error=e))
+            # 尝试 2: 清洗数据后再解析
+            # 替换中文括号，处理 Python 风格的单引号字典
+            cleaned_str = json_str.replace('(', '（').replace(')', '）').replace("'", '"')
+            return json.loads(cleaned_str)
+        except json.JSONDecodeError as e:
+            # 尝试 3: 处理常见的列表/字典截断问题（你的旧逻辑）
+            try:
+                match = re.search(r"\{(.*?)\}", json_str, re.DOTALL)
+                if match:
+                    content = "[{" + match.group(1) + "}]"
+                    return json.loads(content)
+            except:
+                pass
+            
+            # 彻底失败，打印报错
+            print(f"ERROR: JSON Parsing Failed completely.\nExtracted String: {json_str}")
+            # 抛出异常，让上层知道这题没分
+            raise e
     
 
 from .generated_tools import *
@@ -101,7 +127,7 @@ def filter_table_and_tool(query, model_name):
             db_schema = database_schema if 'database_schema' in globals() else ""
             table_prompt = TABLE_PROMPT.format(question=query, database_schema=db_schema)
             table_answer = LLM(table_prompt, model_name)
-            table_response = prase_json_from_response(table_answer)
+            table_response = parse_json_from_response(table_answer)
             table = table_response["名称"]
             break
         except:
