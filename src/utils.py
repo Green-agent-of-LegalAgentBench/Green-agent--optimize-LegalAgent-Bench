@@ -2,7 +2,7 @@ from zhipuai import ZhipuAI
 import json
 import re
 import os
-from .globals import *
+import src.config as config
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -37,10 +37,10 @@ def LLM(query, model_name):
     output_token = response.usage.completion_tokens
     used_token = response.usage.total_tokens
 
-    globals.this_question_input_token += input_token
-    globals.this_question_output_token += output_token
-    globals.this_question_total_token += used_token
-    globals.total_token += used_token
+    config.this_question_input_token += input_token
+    config.this_question_output_token += output_token
+    config.this_question_total_token += used_token
+    config.total_token += used_token
 
     return response.choices[0].message.content.strip()
     
@@ -78,12 +78,28 @@ def prase_json_from_response(rsp: str):
 
 from .generated_tools import *
 from .prompt import *
-from schema import *
+try:
+    from schema import *
+except ImportError:
+    pass
+
+# Define TABLE_PROMPT for table selection
+TABLE_PROMPT = """根据用户问题选择需要使用的数据表。
+
+问题: {question}
+
+数据库结构:
+{database_schema}
+
+请返回一个JSON格式的响应，包含"名称"字段，值为需要使用的表名列表。
+"""
 
 def filter_table_and_tool(query, model_name):
     for attempt in range(3):
         try:
-            table_prompt = TABLE_PROMPT.format(question=query, database_schema=database_schema)
+            # Use database_schema if available, otherwise empty string
+            db_schema = database_schema if 'database_schema' in globals() else ""
+            table_prompt = TABLE_PROMPT.format(question=query, database_schema=db_schema)
             table_answer = LLM(table_prompt, model_name)
             table_response = prase_json_from_response(table_answer)
             table = table_response["名称"]
