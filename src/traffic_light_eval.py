@@ -1,7 +1,7 @@
 # 实现 "Traffic Light" & "HalluGraph" 审计器
 import json
-from .utils import LLM
- # 复用 agents.py 里的 LLM 调用函数
+from .utils import LLM, parse_json_from_response
+ # 复用 agents.py 里的 LLM 调用函数和增强的 JSON 解析
 
 class TrafficLightAuditor:
     def __init__(self, model_name="glm-4-flash"):
@@ -44,6 +44,6 @@ class TrafficLightAuditor:
         
         result = LLM(prompt, self.model_name)
         try:
-            return json.loads(result)
+            return parse_json_from_response(result)
         except:
             return {"signal": "RED", "reason": "Parse Error", "score": 0}
