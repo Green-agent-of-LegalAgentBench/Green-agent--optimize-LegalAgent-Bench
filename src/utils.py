@@ -2,112 +2,39 @@ from zhipuai import ZhipuAI
 import json
 import re
 import os
-import google.generativeai as genai
 from .globals import *
 from dotenv import load_dotenv
+
 # 加载环境变量
 load_dotenv()
 
-headers = {
-        'Content-Type': 'application/json',
-        "Authorization": "Bearer your_api_key(chatglm)"
-    }
-
-# 配置 Gemini API - 优先从环境变量读取，如果没有则使用默认值
-gemini_api_key = os.getenv("GEMINI_API_KEY", "your_api_key")
-genai.configure(api_key=gemini_api_key)
-    
-# 注意：claude 和 qianwen 客户端已移除，如需使用请单独配置
-# 或者也可以使用 Gemini 来处理这些模型
-
-def _create_gemini_response(gemini_response, prompt):
-    """将 Gemini 响应适配为 OpenAI 兼容格式"""
-    class GeminiResponse:
-        def __init__(self, gemini_response, prompt):
-            self.choices = [type('obj', (object,), {
-                'message': type('obj', (object,), {
-                    'content': gemini_response.text if gemini_response.text else ""
-                })()
-            })()]
-            # Gemini 的 token 使用情况
-            if hasattr(gemini_response, 'usage_metadata') and gemini_response.usage_metadata:
-                self.usage = type('obj', (object,), {
-                    'prompt_tokens': gemini_response.usage_metadata.prompt_token_count or 0,
-                    'completion_tokens': gemini_response.usage_metadata.candidates_token_count or 0,
-                    'total_tokens': (gemini_response.usage_metadata.prompt_token_count or 0) + 
-                                   (gemini_response.usage_metadata.candidates_token_count or 0)
-                })()
-            else:
-                # 如果没有 usage_metadata，使用估算值
-                self.usage = type('obj', (object,), {
-                    'prompt_tokens': len(prompt.split()),
-                    'completion_tokens': len(gemini_response.text.split()) if gemini_response.text else 0,
-                    'total_tokens': len(prompt.split()) + (len(gemini_response.text.split()) if gemini_response.text else 0)
-                })()
-    return GeminiResponse(gemini_response, prompt)
+# 配置智谱 AI
+zhipuai_api_key = os.getenv("ZHIPUAI_API_KEY", "your_api_key")
 
 def LLM(query, model_name):
-    if model_name.find("gpt") != -1 or model_name.find("gemini") != -1:
-        # 使用 Gemini API
-        # 如果模型名包含 gpt，也使用 Gemini（因为用户想用 Gemini 替换 OpenAI）
-        model = genai.GenerativeModel(model_name if model_name.find("gemini") != -1 else "gemini-1.5-flash")
-        
-        # 构建提示词，包含 system message 和 user query
-        prompt = f"You are a helpful assistant.\n\n{query}"
-        
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0,
-            )
-        )
-        
-        response = _create_gemini_response(response, prompt)
-
-    elif model_name.find('claude') != -1:
-        # 使用 Gemini 替代 Claude
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"You are a helpful assistant.\n\n{query}"
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0,
-                max_output_tokens=2000,
-            )
-        )
-        response = _create_gemini_response(response, prompt)
+    """
+    统一的 LLM 调用接口，使用智谱 AI
+    """
+    # 如果传入的是其他模型名，统一使用 glm-4-flash
+    if model_name.find('glm') == -1:
+        model_name = "glm-4-flash"
     
-    elif model_name.find('qwen') != -1:
-        # 使用 Gemini 替代 Qwen
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"You are a helpful assistant.\n\n{query}"
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0,
-            )
-        )
-        response = _create_gemini_response(response, prompt)
-    
-    elif model_name.find('glm') != -1:
-        client = ZhipuAI(api_key="your_api_key")
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "user", "content": query},
-            ],
-            stream=False,
-            max_tokens=2000,
-            temperature=0,
-            do_sample=False,
-        )
+    # 使用智谱 AI
+    client = ZhipuAI(api_key=zhipuai_api_key)
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[
+            {"role": "user", "content": query},
+        ],
+        stream=False,
+        max_tokens=2000,
+        temperature=0,
+        do_sample=False,
+    )
 
-    ## 在这里记录 token 消耗数
-    # 输入 token
+    # 记录 token 消耗数
     input_token = response.usage.prompt_tokens
-    # 输出 token
     output_token = response.usage.completion_tokens
-    # 总 token
     used_token = response.usage.total_tokens
 
     globals.this_question_input_token += input_token
@@ -152,7 +79,6 @@ def prase_json_from_response(rsp: str):
 from .generated_tools import *
 from .prompt import *
 from schema import *
-#from utils import *
 
 def filter_table_and_tool(query, model_name):
     for attempt in range(3):
@@ -208,8 +134,6 @@ def print_colored(text, color=None):
     参数：
     - text: 要打印的文本
     - color: 文本颜色（如 red, green, blue, yellow, cyan, magenta, white）
-    - on_color: 背景颜色（如 on_red, on_green, on_blue）
-    - attrs: 属性列表（如 ['bold', 'dark', 'underline', 'blink', 'reverse', 'concealed']）
     """
     try:
         print('\n\n\n')

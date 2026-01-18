@@ -92,7 +92,7 @@ def _score_with_traffic_light(item: Dict[str, Any], config: Dict[str, Any]) -> D
         ground_truth_docs = [str(gt)]
 
     # Optional: model name override
-    model_name = config.get("audit_model") or config.get("model_name") or "gemini-1.5-flash"
+    model_name = config.get("audit_model") or config.get("model_name") or "glm-4-flash"
     enable_triples = bool(config.get("enable_triples", False))
 
     # ---- 2) Call your auditor ----
