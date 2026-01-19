@@ -240,14 +240,28 @@ async def run_assessment(payload: Dict[str, Any]) -> Dict[str, Any]:
             sums["safety"] += float(scored.get("safety_score", 0.0))
 
         n = max(len(per_item), 1)
-        summary = {
-            "n": len(per_item),
-            "avg_success": sums["success"] / n,
-            "avg_process": sums["process"] / n,
-            "avg_citation": sums["citation"] / n,
-            "avg_safety": sums["safety"] / n,
-            "traffic_light_counts": counts,
+        total_lights = counts.get("GREEN", 0) + counts.get("YELLOW", 0) + counts.get("RED", 0)
+        den = total_lights if total_lights > 0 else 1  # avoid division by zero
+        traffic_light_ratios = {
+            "GREEN": counts.get("GREEN", 0) / den,
+            "YELLOW": counts.get("YELLOW", 0) / den,
+            "RED": counts.get("RED", 0) / den,
         }
+        summary = {
+             "n": len(per_item),
+             "avg_success": sums["success"] / n,
+             "avg_process": sums["process"] / n,
+             "avg_citation": sums["citation"] / n,
+             "avg_safety": sums["safety"] / n,
+
+             # original
+            "traffic_light_counts": counts,
+            # new
+            "traffic_light_total": total_lights,
+            "traffic_light_ratios": traffic_light_ratios,          # 0~1
+            "traffic_light_green_pct": round(traffic_light_ratios["GREEN"] * 100.0, 2),  # 0~100
+        }
+        
 
         emit("log", "assessment_complete", summary)
 
