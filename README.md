@@ -1,86 +1,167 @@
-# LegalAgentBench-A2A Green Agent
+# LegalAgentBench-A2A: A Benchmark-Native Green Agent
+A standardized, reproducible, and A2A-compatible evaluation system for legal LLM agents.
 
-A reproducible and auditable **Green Agent** for legal evaluation on AgentBeats.
+---
 
-This Green Agent wraps **LegalAgentBench** into an **Agent-to-Agent (A2A)** compatible
-benchmark host and evaluates Purple Agents with RAG-grounded, auditable scoring.
+## 1. Project Overview
 
+Our team（Ashley XU， Xirui Zhu， Fanqi lin） create this agent for AgentBeats competition. This repository——The Green Agent (Benchmark Agent) serves as a comprehensive bridge between the LegalAgentBench dataset and the Agent-to-Agent (A2A) protocol.
 
-## What is this repository?
+The primary objective is to establish a standardized evaluation oracle that interacts with Purple Agents (Contestant Agents) strictly through the A2A protocol. By converting legal reasoning tasks into a deterministic execution environment, this project ensures that legal agents are evaluated on:
 
-This repository implements a **Green Agent** for the AgentBeats competition.
+*Legal Text Comprehension*
 
-The Green Agent is **not a contestant agent**.
-Instead, it acts as a **benchmark host and legal auditor** that evaluates
-Purple Agents on legal reasoning tasks.
+*Tool Usage Proficiency*
 
-Specifically, this Green Agent:
+*Reasoning Rigor*
 
-- Wraps **LegalAgentBench** into an **A2A-compatible evaluation agent**
-- Communicates with Purple Agents via the official **Agent-to-Agent (A2A) protocol**
-- Uses **retrieval-augmented generation (RAG)** to access authoritative legal texts
-- Produces **structured, auditable, and reproducible evaluation results**
+*Safety & Compliance*
 
-In short:
+This system is tailored for Chinese Law but architected for extensibility.
 
-> Green Agent = LegalAgentBench + RAG + A2A
+---
 
-Any Purple Agent that speaks the A2A protocol can be evaluated
-without modifying benchmark scripts or evaluation code.
+## 2. Motivation & Problem Statement
+Despite the proliferation of legal LLMs, existing benchmarks suffer from critical structural limitations. This project addresses four key pain points:
 
-## Quickstart (Docker, one-command run)
+### Problems with existing legal benchmarks
+1. **Interoperability**  
+   - Current benchmarks cannot be directly used by real LLM agents.
 
-Run the following commands to execute the Green Agent end-to-end:
+2. **Reproducibility**  
+   - Evaluation pipelines are not deterministic; scores vary across runs.
 
-```bash
-cp .env.example .env
-# Edit .env and set ZHIPUAI_API_KEY
-# Do NOT commit .env
+3. **Fragmentation**  
+   - Evaluation criteria are inconsistent and scattered.
 
-./scripts/docker_run_once.sh
+4. **Discovery**  
+   - Benchmarks are difficult to understand, extend, and reuse.
 
-# Results will be written to:
-# output/audit_results.jsonl
+---
 
+## 3. Our Goals
 
-## Reproducibility (Run the same configuration twice)
+### **1. Build an A2A-Compatible Legal Benchmark (Interoperability)**  
+- Convert all **300 LegalAgentBench tasks** into standardized A2A task JSON  
+- Ensure retrieval, analysis, reasoning, and tool-use tasks can be executed by any LLM agent using the A2A interface
 
-This Green Agent supports reproducible evaluation.  
-To demonstrate reproducibility, run the following command:
+### **2. Enable Highly Reproducible Evaluation (Reproducibility)**  
+- Implement **deterministic** task generation & scoring logic  
+- Fix tool behavior, corpus usage, retrieval logic, and evaluation rules  
+- Provide benchmark-side logging & action replay  
+- Ensure identical inputs → consistent outputs (or explainable differences)
 
-```bash
-./scripts/docker_run_twice_same_config.sh
+### **3. Build a Structured Capability Evaluation System (Fragmentation)**  
+Unify evaluation across tasks with dimensions such as:
 
-####This command runs the same evaluation configuration twice using the same Docker image,the same environment variables, and the same evaluation logic. All results are written to structured JSONL logs, enabling auditability, comparison across runs, andleaderboard-level reproducibility.
+- Legal text comprehension  
+- Legal tool-use ability  
+- Legal argumentation & writing quality  
+- Reasoning explainability (full reasoning trace)  
+- Compliance & safety (no hallucinated laws, no illegal advice)
 
-## Evaluation Outputs
+### **4. Improve Discoverability & Extensibility (Discovery)**  
+- Create a benchmark that is **easy to use, easy to extend, and easy to integrate**  
+- Standardize:
+  - Task schema  
+  - Tool schema  
+  - Evaluation outputs  
+- Provide clear documentation and example workflows
 
-Each evaluation produces structured audit outputs that capture task correctness,reasoning quality, citation grounding, and safety signals. Results are written records for easy inspection, replay, and comparison across runs.
+---
 
-```text
-output/audit_results.jsonl
+## 4. System Components
 
-Each record contains normalized scores and a Traffic-Light safety signal that summarize whether the evaluated reasoning is verified, insufficiently grounded, or risky.
+### **A. Task Provider**
+- Converts LegalAgentBench dataset into A2A task definitions  
+- Enforces the unified task schema  
+- Manages metadata, ground truth, and allowable toolsets.
 
-## High-level Method
+### **B. Tool Layer**
+- Wraps the original 37 LegalAgentBench tools into A2A tool schemas  
+- Supports legal search, case retrieval, law citation lookup, filtering, sorting, etc.  
+- Future extension: vector-store RAG tools to improve legal comprehension
 
-Green Agent evaluates legal agents using a dual-view consistency check between what a Purple Agent claims and what authoritative legal texts support. The Purple Agent’s reasoning steps, tool calls, and citations are compared against ground truth retrieved via a deterministic RAG pipeline over verified legal corpora. For each step, the Green Agent determines whether claims are supported,under-specified, or hallucinated, enabling process-aware and safety-first legal evaluation beyond final-answer matching.
+### **C. Evaluation Layer**
+Produces `results.json` with metrics:
 
-## Traffic Light Safety Signal
+- `success_score`  
+- `process_score`  
+- `citation_score`  
+- `safety_score`  
 
-Green Agent introduces a Traffic Light safety signal to explicitly capture the reliability and safety of legal reasoning. Each evaluated response is classified as GREEN, YELLOW, or RED based on consistency with authoritative legal texts.
-GREEN indicates that claims and citations are fully supported, YELLOW indicatesplausible but insufficiently grounded reasoning, and RED indicates hallucinated,incorrect, or legally unsafe claims. This safety signal directly influences theoverall evaluation scores, ensuring that unsafe reasoning can never receive ahigh evaluation result.
+Also performs:
 
-## Notes, Secrets, and License
+- hallucination detection  
+- reasoning-step alignment  
+- legal citation validation  
+- sensitive-content safety checks
 
-This repository is designed for reproducible evaluation and submission on AgentBeats. Runtime secrets such as API keys must never be committed to version control. Only `.env.example` should be tracked, while `.env` remains local.
+### **D. Audit & Replay System**
+- Logs comprehensive action traces (Thoughts -> Actions -> Observations).
+- Enables full deterministic replay for debugging.
 
-Evaluation outputs and local databases (e.g., JSONL audit logs and vector stores)
-are generated at runtime and are not intended to be committed.
+### **E. A2A Protocol Engine**
+- Handles all communication between Green Agent and Purple Agent  
+- Validates A2A message structure  
+- Ensures tool calls and final answers comply with A2A specification
 
-License: MIT
-<!-- webhook test -->
-##
-trigger evaluation
+---
+## 4.2 Advanced Architecture(RAG):
+To surpass traditional lexical retrieval, we integrate a Hybrid-RAG Architecture optimized for high-stakes legal reasoning:
 
+Embeddings & Context: Utilizes *Voyage 3 Large Embeddings* with Matryoshka Representation Learning.
 
+Benefit: Supports 32k context windows for analyzing lengthy contracts/statutes while reducing token usage by ~85%.
+
+Query Adaptation: Implements HyDE (Hypothetical Document Embeddings) and Query Expansion to bridge the semantic gap between layperson queries and formal legal terminology.
+
+Self-Reflective Reasoning: Enforces *Chain-of-Thought (CoT)* combined with *Self-RAG mechanisms*, compelling the agent to critique its own citations prior to final output.
+
+HalluGraph Verification: A novel graph-based audit system that maps reasoning steps against a Ground Truth Knowledge Graph to detect subtle semantic hallucinations.
+
+## 5. Upstream Resources
+
+This project is built upon the following open-source frameworks:
+
+### LegalAgentBench (ACL 2025)
+- Paper: https://aclanthology.org/2025.acl-long.116/  
+- GitHub: https://github.com/CSHaitao/LegalAgentBench  
+
+Key files:
+- 37 tools: `src/generated_tools.py`  
+- Reasoning agents: `react.py`, `plan_and_solve.py`, `plan_and_execute.py`  
+- Tasks: `data/dataset.json`  `data/dataset_test.json`  
+
+### Related Legal Benchmarks
+- LawBench — https://arxiv.org/abs/2309.16289  
+- CitaLaw — https://arxiv.org/abs/2412.14556  
+- DISC-LawLLM — https://github.com/FudanDISC/DISC-LawLLM  
+- Chinese-LawBench — https://arxiv.org/abs/2406.04500  
+
+### AgentBeats & A2A Resources
+- A2A Protocol Spec — https://github.com/a2aproject/A2A  
+- AgentBeats SDK — https://github.com/agentbeats/agentbeats  
+- A2A Tutorial — https://github.com/agentbeats/tutorial  
+- A2A Example Implementation — https://github.com/sap156/Agent-to-Agent-A2A-Protocol-Implementation  
+
+### reference
+HalluGraph：https://arxiv.org/html/2512.01659v1
+HyDE (Hypothetical Document Embeddings): Precise Zero-Shot Dense Retrieval without Relevance Labels (https://arxiv.org/abs/2212.10496)
+Self-RAG: Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection (https://arxiv.org/abs/2310.11511)
+Chain-of-Thought (CoT): Chain-of-Thought Prompting Elicits Reasoning in Large Language Models (https://arxiv.org/abs/2201.11903)
+
+---
+
+## 6. Future Outlook
+We aim to evolve this project from a static benchmark into a dynamic legal simulation environment.
+
+Multi-Jurisdiction Support: Expanding the HalluGraph and retrieval corpus to support Common Law jurisdictions (e.g., US, UK) alongside Chinese Civil Law.
+
+Adversarial Evaluation: Introducing "Red Teaming" tasks where the Green Agent actively attempts to mislead the Purple Agent to test robustness against conflicting evidence.
+
+Dynamic Legislation: Integrating real-time API feeds to update the ground truth as laws are amended, ensuring the benchmark never becomes obsolete.
+
+Multi-Agent Simulation: Moving beyond 1-on-1 evaluation to courtroom simulations involving Judge, Prosecutor, and Defense agents.
+
+## 7.How to use
