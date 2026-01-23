@@ -165,3 +165,86 @@ Dynamic Legislation: Integrating real-time API feeds to update the ground truth 
 Multi-Agent Simulation: Moving beyond 1-on-1 evaluation to courtroom simulations involving Judge, Prosecutor, and Defense agents.
 
 ## 7.How to use
+
+###  7. How to Use (Leaderboard + Green Agent)
+
+This project consists of two parts:
+
+- **Green Agent Repo (Bench / Evaluator)**: provides A2A benchmark services (task generation, tools, scoring, and `results.json` output). It is shipped as a Docker image on GHCR for the AgentBeats runner to pull and execute.
+- **Leaderboard Repo (Results + SQL + Actions)**: triggers evaluations, stores result files, and renders the leaderboard via `leaderboard.json` (DuckDB SQL queries).
+
+---
+
+#### 7.1 Prerequisites
+
+- A runnable **Green Agent Docker image** 
+- A registered **AgentBeats Purple Agent** and **Green Agent**,
+- A **Leaderboard Repo** containing:
+  - `scenario.toml` (defines green / purple / config)
+  - `leaderboard.json` (DuckDB queries)
+  - GitHub Actions workflow (runs eval and commits results back)
+
+---
+
+#### 7.2 Green Agent: Build & Publish Docker Image (GHCR Package)
+
+> **Requirement**: the container must start an A2A server and listen on a port (e.g., `0.0.0.0:9009`) without exiting.
+
+Add a GitHub Actions workflow to publish to GHCR (`.github/workflows/publish.yml`):
+After publishing:
+- A GHCR package should appear under GitHub **Packages**
+- Set the package to **Public** so the runner can pull it without extra auth
+
+---
+
+#### 7.3 Register Green / Purple Agents on AgentBeats
+
+1. Register the Purple Agent (contestant) and copy its `agent_id`
+2. Register the Green Agent (benchmark) and provide its Docker image (GHCR image reference). Copy its `agent_id`
+3. Bind the Leaderboard repo URL in the Green Agent settings (if available in the UI)
+
+---
+
+#### 7.4 Leaderboard Repo: Configure `scenario.toml` and Run Evaluations
+
+Edit `scenario.toml` in the Leaderboard repo and trigger an evaluation:
+- Commit & push changes (or manually run the workflow in GitHub Actions)
+- The workflow runs the benchmark and commits results back (typically under `results/`)
+- Once merged into `main`, the leaderboard queries can read the latest results
+
+---
+
+#### 7.5 Results Format
+
+Key field paths used by the leaderboard:
+
+- Participant mapping: `results.participants.<name>`
+- Run list: `results.results[]`
+- Per-run summary metrics (used for leaderboard display):
+  - `run.results.avg_success` → Pass rate
+  - `run.results.traffic_light_green_pct` → Green %
+  - `run.results.n` → # Tasks
+
+Our `results.json` also includes:
+- `artifacts.summary.json` (overall summary)
+- `artifacts.per_item.json` (per-item outputs)
+- `artifacts.task_updates.json` (logs / replay traces)
+
+---
+
+#### 7.6 Leaderboard Query 
+Configure `leaderboard.json` in the Leaderboard repo (example):
+
+```json
+[
+  {
+    "name": "Overall Performance",
+    "query": "SELECT id, ROUND(pass_rate, 2) AS \"Pass Rate\", ROUND(green_pct, 2) AS \"Green %\", total_tasks AS \"# Tasks\" FROM (SELECT results.participants.lawlawlaw AS id, run.results.avg_success AS pass_rate, run.results.traffic_light_green_pct AS green_pct, run.results.n AS total_tasks, ROW_NUMBER() OVER (PARTITION BY results.participants.lawlawlaw ORDER BY run.results.avg_success DESC, run.results.traffic_light_green_pct DESC, run.results.n DESC) AS rn FROM results, UNNEST(results.results) AS t(run)) WHERE rn = 1 ORDER BY \"Pass Rate\" DESC, \"Green %\" DESC"
+  }
+]
+```
+
+Once complete:
+- The AgentBeats Leaderboards page renders `Pass rate / Green % / # Tasks / Latest Result`
+- The `Latest Result` link typically points to the corresponding results artifact/commit for traceability
+```
