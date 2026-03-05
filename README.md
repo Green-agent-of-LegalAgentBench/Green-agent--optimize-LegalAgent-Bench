@@ -276,12 +276,11 @@ We aim to evolve this project from a static benchmark into a dynamic legal simul
 - **Multi-Agent Simulation**: Moving beyond 1-on-1 evaluation to courtroom simulations involving Judge, Prosecutor, and Defense agents.
 
 ---
-Deterministic Evaluation Results (Smoke Test)
-To ensure the Reliability and Reproducibility of the Green Agent, we conducted standardized smoke tests within a controlled A2A environment. The system demonstrated perfect deterministic performance, ensuring that identical inputs yield consistent evaluation signals.
+## Deterministic Evaluation Results (Smoke Test)
+- To ensure the Reliability and Reproducibility of the Green Agent, we conducted standardized smoke tests within a controlled A2A environment. The system demonstrated perfect deterministic performance, ensuring that identical inputs yield consistent evaluation signals.
 Smoke Test Output (results.json)
-The following trace represents a successful execution (Run ID: smoke-001) where the Green Agent correctly identified a verified legal reasoning chain:
-code
-JSON
+- The following trace represents a successful execution (Run ID: smoke-001) where the Green Agent correctly identified a verified legal reasoning chain:
+```bash
 [
   {
     "participants": { "agent": "Legal-agent-green-agent-zxl" },
@@ -300,7 +299,9 @@ JSON
     }
   }
 ]
-Result Analysis:
+```
+
+- Result Analysis:
 100% Pass Rate: Validates that the A2A server correctly receives tasks and the Evaluation Layer accurately processes the reasoning trace.
 High Efficiency: Average execution time of 0.1s (excluding LLM inference), demonstrating a highly optimized local retrieval and scoring pipeline.
 Zero Variance: Multiple runs with identical configurations yielded a variance of 0%, fulfilling our reproducibility guarantee.
